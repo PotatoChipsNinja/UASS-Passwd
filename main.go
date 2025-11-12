@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"os"
 	"regexp"
 	"time"
 
@@ -85,26 +86,57 @@ func multiPasswd(username, oldPassword, newPassword string) error {
 	return nil
 }
 
-func main() {
-	fmt.Println("--- UASS Passwd ---")
+func interactiveInput() (string, string, string) {
 	var username, oldPassword, newPassword, repeatPassword string
-
 	fmt.Print("Username: ")
 	fmt.Scanln(&username)
 	fmt.Print("Old password: ")
 	fmt.Scanln(&oldPassword)
-	fmt.Print("New password (press Enter to keep the same): ")
-	fmt.Scanln(&newPassword)
-	if newPassword == "" {
-		newPassword = oldPassword
-	} else {
+	for {
+		fmt.Print("New password (press Enter to keep the same): ")
+		fmt.Scanln(&newPassword)
+		if newPassword == "" {
+			return username, oldPassword, oldPassword
+		}
 		fmt.Print("Repeat new password: ")
 		fmt.Scanln(&repeatPassword)
-		if newPassword != repeatPassword {
-			fmt.Println("Error: new passwords do not match.")
-			return
+		if newPassword == repeatPassword {
+			return username, oldPassword, newPassword
 		}
+		fmt.Println("Error: new passwords do not match.")
 	}
+}
+
+func welcomeMessage() {
+	fmt.Print("\033[H\033[2J")
+	fmt.Println("---------- UASS Passwd ----------")
+}
+
+func exit(code int) {
+	fmt.Print("Press Enter to exit...")
+	fmt.Scanln()
+	os.Exit(code)
+}
+
+func main() {
+	welcomeMessage()
+	var username, oldPassword, newPassword string
+	if len(os.Args) == 1 {
+		username, oldPassword, newPassword = interactiveInput()
+		welcomeMessage()
+	} else if len(os.Args) == 4 {
+		username, oldPassword, newPassword = os.Args[1], os.Args[2], os.Args[3]
+	} else {
+		fmt.Println("Usage: uass-passwd <username> <old_password> <new_password>")
+		return
+	}
+
+	// 在一个方框中展示username, oldPassword, newPassword
+	fmt.Println("+--------------------------------+")
+	fmt.Printf("| Username: %-20s |\n", username)
+	fmt.Printf("| Old Password: %-16s |\n", oldPassword)
+	fmt.Printf("| New Password: %-16s |\n", newPassword)
+	fmt.Println("+--------------------------------+")
 
 	err := changePassword(username, oldPassword, newPassword)
 	if err != nil {
@@ -113,12 +145,13 @@ func main() {
 			err = multiPasswd(username, oldPassword, newPassword)
 			if err != nil {
 				fmt.Println("Error:", err)
-				return
+				exit(1)
 			}
 		} else {
 			fmt.Println("Error:", err)
-			return
+			exit(1)
 		}
 	}
 	fmt.Println("Password changed successfully.")
+	exit(0)
 }
