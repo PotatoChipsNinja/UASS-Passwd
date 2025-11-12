@@ -45,6 +45,8 @@ func changePassword(username, oldPassword, newPassword string) error {
 	})
 	if err != nil {
 		return err
+	} else if res.StatusCode != 200 {
+		return fmt.Errorf("HTTP request failed with status: %s, code: %d", res.Status, res.StatusCode)
 	}
 
 	buf := make([]byte, 1024)
@@ -88,11 +90,14 @@ func multiPasswd(username, oldPassword, newPassword string) error {
 
 func interactiveInput() (string, string, string) {
 	var username, oldPassword, newPassword, repeatPassword string
+	welcomeMessage()
 	fmt.Print("Username: ")
 	fmt.Scanln(&username)
 	fmt.Print("Old password: ")
 	fmt.Scanln(&oldPassword)
 	for {
+		newPassword = ""
+		repeatPassword = ""
 		fmt.Print("New password (press Enter to keep the same): ")
 		fmt.Scanln(&newPassword)
 		if newPassword == "" {
@@ -119,11 +124,9 @@ func exit(code int) {
 }
 
 func main() {
-	welcomeMessage()
 	var username, oldPassword, newPassword string
 	if len(os.Args) == 1 {
 		username, oldPassword, newPassword = interactiveInput()
-		welcomeMessage()
 	} else if len(os.Args) == 4 {
 		username, oldPassword, newPassword = os.Args[1], os.Args[2], os.Args[3]
 	} else {
@@ -131,7 +134,7 @@ func main() {
 		return
 	}
 
-	// 在一个方框中展示username, oldPassword, newPassword
+	welcomeMessage()
 	fmt.Println("+--------------------------------+")
 	fmt.Printf("| Username: %-20s |\n", username)
 	fmt.Printf("| Old Password: %-16s |\n", oldPassword)
